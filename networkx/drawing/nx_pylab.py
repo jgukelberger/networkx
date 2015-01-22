@@ -1,3 +1,5 @@
+import six
+
 """
 **********
 Matplotlib
@@ -715,7 +717,7 @@ def draw_networkx_labels(G, pos,
                   label,
                   size=font_size,
                   color=font_color,
-                  family=font_family,
+                  family=six.text_type(font_family),
                   weight=font_weight,
                   horizontalalignment=horizontalalignment,
                   verticalalignment=verticalalignment,
@@ -857,7 +859,7 @@ def draw_networkx_edge_labels(G, pos,
                     label,
                     size=font_size,
                     color=font_color,
-                    family=font_family,
+                    family=six.text_type(font_family),
                     weight=font_weight,
                     horizontalalignment=horizontalalignment,
                     verticalalignment=verticalalignment,

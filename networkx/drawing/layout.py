@@ -165,7 +165,8 @@ def fruchterman_reingold_layout(G,dim=2,k=None,
                                 fixed=None,
                                 iterations=50,
                                 weight='weight',
-                                scale=1.0):
+                                scale=1.0,
+                                grav=None):
     """Position nodes using Fruchterman-Reingold force-directed algorithm. 
 
     Parameters
@@ -199,6 +200,9 @@ def fruchterman_reingold_layout(G,dim=2,k=None,
     scale : float (default=1.0)
         Scale factor for positions. The nodes are positioned 
         in a box of size [0,scale] x [0,scale].  
+    
+    grav : list or None optional (default=None)
+        Gravitational field acting on all nodes.
 
 
     Returns
@@ -232,6 +236,9 @@ def fruchterman_reingold_layout(G,dim=2,k=None,
     else:
         pos_arr=None
 
+    if grav is not None:
+        assert np.shape(grav) == (dim,)
+    
     if len(G)==0:
         return {}
     if len(G)==1:
@@ -246,14 +253,14 @@ def fruchterman_reingold_layout(G,dim=2,k=None,
            # We must adjust k by domain size for layouts that are not near 1x1
            nnodes,_ = A.shape
            k=dom_size/np.sqrt(nnodes)
-        pos=_sparse_fruchterman_reingold(A,dim,k,pos_arr,fixed,iterations)
+        pos=_sparse_fruchterman_reingold(A,dim,k,pos_arr,fixed,iterations,grav)
     except:
         A=nx.to_numpy_matrix(G,weight=weight)
         if k is None and fixed is not None:
            # We must adjust k by domain size for layouts that are not near 1x1
            nnodes,_ = A.shape
            k=dom_size/np.sqrt(nnodes)
-        pos=_fruchterman_reingold(A,dim,k,pos_arr,fixed,iterations)
+        pos=_fruchterman_reingold(A,dim,k,pos_arr,fixed,iterations,grav)
     if fixed is None:
         pos=_rescale_layout(pos,scale=scale)
     return dict(zip(G,pos))
@@ -261,7 +268,7 @@ def fruchterman_reingold_layout(G,dim=2,k=None,
 spring_layout=fruchterman_reingold_layout
 
 def _fruchterman_reingold(A, dim=2, k=None, pos=None, fixed=None, 
-                          iterations=50):
+                          iterations=50,grav=None):
     # Position nodes in adjacency matrix A using Fruchterman-Reingold
     # Entry point for NetworkX graph is fruchterman_reingold_layout()
     try:
@@ -283,7 +290,10 @@ def _fruchterman_reingold(A, dim=2, k=None, pos=None, fixed=None,
     else:
         # make sure positions are of same type as matrix
         pos=pos.astype(A.dtype)
-
+    
+    if grav is not None:
+        grav = np.asarray(grav,A.dtype)
+    
     # optimal distance between nodes
     if k is None:
         k=np.sqrt(1.0/nnodes)
@@ -311,6 +321,9 @@ def _fruchterman_reingold(A, dim=2, k=None, pos=None, fixed=None,
         displacement=np.transpose(np.transpose(delta)*\
                                   (k*k/distance**2-A*distance/k))\
                                   .sum(axis=1)
+        # add effect of gravitational field
+        if grav is not None:
+            displacement += grav
         # update positions
         length=np.sqrt((displacement**2).sum(axis=1))
         length=np.where(length<0.01,0.1,length)
@@ -325,7 +338,7 @@ def _fruchterman_reingold(A, dim=2, k=None, pos=None, fixed=None,
 
 
 def _sparse_fruchterman_reingold(A, dim=2, k=None, pos=None, fixed=None, 
-                                 iterations=50):
+                                 iterations=50, grav=None):
     # Position nodes in adjacency matrix A using Fruchterman-Reingold  
     # Entry point for NetworkX graph is fruchterman_reingold_layout()
     # Sparse version
@@ -354,6 +367,9 @@ def _sparse_fruchterman_reingold(A, dim=2, k=None, pos=None, fixed=None,
     else:
         # make sure positions are of same type as matrix
         pos=pos.astype(A.dtype)
+
+    if grav is not None:
+        grav = np.asarray(grav,A.dtype)
 
     # no fixed nodes
     if fixed==None:
@@ -387,6 +403,9 @@ def _sparse_fruchterman_reingold(A, dim=2, k=None, pos=None, fixed=None,
             # displacement "force"
             displacement[:,i]+=\
                 (delta*(k*k/distance**2-Ai*distance/k)).sum(axis=1)
+            # add effect of gravitational field
+            if grav is not None:
+                displacement[:,i] += grav
         # update positions
         length=np.sqrt((displacement**2).sum(axis=0))
         length=np.where(length<0.01,0.1,length)

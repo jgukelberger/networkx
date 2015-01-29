@@ -277,7 +277,7 @@ def _fruchterman_reingold(A, dim=2, k=None, pos=None, fixed=None,
 
     A=np.asarray(A) # make sure we have an array instead of a matrix
 
-    if pos==None:
+    if pos is None:
         # random initial positions
         pos=np.asarray(np.random.random((nnodes,dim)),dtype=A.dtype)
     else:
